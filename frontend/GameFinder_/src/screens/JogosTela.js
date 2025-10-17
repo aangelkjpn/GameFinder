@@ -1,21 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, TextInput, TouchableOpacity, Modal, Dimensions, ScrollView, StatusBar } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, TextInput, TouchableOpacity, Modal, Dimensions, ScrollView, StatusBar, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
 const API_URL = 'http://10.111.9.99:3000/api';
-
-const PLATAFORMAS_DISPONIVEIS = [
-  'pc',
-  'xbox one',
-  'xbox 360',
-  'ps4',
-  'ps5',
-  'nintendo switch',
-  'mobile',
-];
 
 const JogosTela = () => {
   const [jogos, setJogos] = useState([]);
@@ -25,10 +15,7 @@ const JogosTela = () => {
   const [jogoSelecionado, setJogoSelecionado] = useState(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [modalFiltroVisivel, setModalFiltroVisivel] = useState(false);
-  
   const [filtroAtual, setFiltroAtual] = useState('Filtrar');
-  const [filtroPlataforma, setFiltroPlataforma] = useState('todos');
-  
   const jogosPorPagina = 10;
 
   const formatarData = (dataString) => {
@@ -43,87 +30,55 @@ const JogosTela = () => {
     }
   };
 
-  const filtrarEOrdenarJogos = (jogosBase, filtroDeData, filtroDePlataforma, termoBuscaAtual) => {
-      let jogosResultantes = [...jogosBase];
-      const termo = termoBuscaAtual.toLowerCase().trim();
-
-      if (termo) {
-          jogosResultantes = jogosResultantes.filter(jogo =>
-              jogo.nome.toLowerCase().includes(termo) ||
-              jogo.genero.toLowerCase().includes(termo) ||
-              jogo.plataforma.toLowerCase().includes(termo) ||
-              jogo.desenvolvedor.toLowerCase().includes(termo)
-          );
-      }
-
-      if (filtroDePlataforma !== 'todos') {
-          const plataformaTermo = filtroDePlataforma.toLowerCase();
-          jogosResultantes = jogosResultantes.filter(jogo => 
-              jogo.plataforma.toLowerCase().includes(plataformaTermo)
-          );
-      }
-
-      switch (filtroDeData) {
-          case 'novos':
-              jogosResultantes.sort((a, b) => {
-                  const dataA = new Date(a.dataLancamento);
-                  const dataB = new Date(b.dataLancamento);
-                  return dataB - dataA;
-              });
-              break;
-
-          case 'antigos':
-              jogosResultantes.sort((a, b) => {
-                  const dataA = new Date(a.dataLancamento);
-                  const dataB = new Date(b.dataLancamento);
-                  return dataA - dataB;
-              });
-              break;
-
-          case 'lancamento':
-              const hoje = new Date();
-              jogosResultantes = jogosResultantes.filter(jogo => {
-                  const dataLancamento = new Date(jogo.dataLancamento);
-                  return dataLancamento > hoje;
-              }).sort((a, b) => {
-                  const dataA = new Date(a.dataLancamento);
-                  const dataB = new Date(b.dataLancamento);
-                  return dataA - dataB;
-              });
-              break;
-
-          default:
-              break;
-      }
-
-      return jogosResultantes;
-  };
-  
-  const aplicarFiltroCompleto = (tipoFiltro, plataformaFiltro) => {
-      const novoFiltroData = tipoFiltro !== undefined ? tipoFiltro : filtroAtual;
-      const novoFiltroPlataforma = plataformaFiltro !== undefined ? plataformaFiltro : filtroPlataforma;
-
-      setFiltroAtual(novoFiltroData);
-      setFiltroPlataforma(novoFiltroPlataforma);
-      setModalFiltroVisivel(false);
-
-      const jogosResultantes = filtrarEOrdenarJogos(jogos, novoFiltroData, novoFiltroPlataforma, termoBusca);
-
-      setJogosFiltrados(jogosResultantes);
-      setPaginaAtual(1);
+  const aplicarFiltro = (tipoFiltro) => {
+    setFiltroAtual(tipoFiltro);
+    setModalFiltroVisivel(false);
+    
+    let jogosOrdenados = [...jogos];
+    
+    switch (tipoFiltro) {
+      case 'Filtrar':
+        break;
+      
+      case 'novos':
+        jogosOrdenados.sort((a, b) => {
+          const dataA = new Date(a.dataLancamento);
+          const dataB = new Date(b.dataLancamento);
+          return dataB - dataA;
+        });
+        break;
+      
+      case 'antigos':
+        jogosOrdenados.sort((a, b) => {
+          const dataA = new Date(a.dataLancamento);
+          const dataB = new Date(b.dataLancamento);
+          return dataA - dataB;
+        });
+        break;
+      
+      case 'lancamento':
+        const hoje = new Date();
+        jogosOrdenados = jogos.filter(jogo => {
+          const dataLancamento = new Date(jogo.dataLancamento);
+          return dataLancamento > hoje;
+        }).sort((a, b) => {
+          const dataA = new Date(a.dataLancamento);
+          const dataB = new Date(b.dataLancamento);
+          return dataA - dataB;
+        });
+        break;
+      
+      default:
+        break;
+    }
+    
+    setJogosFiltrados(jogosOrdenados);
+    setPaginaAtual(1);
   };
 
-  const aplicarFiltroOrdenacao = (tipoFiltro) => {
-      aplicarFiltroCompleto(tipoFiltro, filtroPlataforma);
-  };
-  
-  const aplicarFiltroPlataforma = (plataforma) => {
-      aplicarFiltroCompleto(filtroAtual, plataforma);
-  };
-
+  // Função para remover todos os filtros
   const removerFiltros = () => {
-    aplicarFiltroCompleto('Filtrar', 'todos');
-    setTermoBusca('');
+    aplicarFiltro('Filtrar');
   };
 
   useEffect(() => {
@@ -134,7 +89,7 @@ const JogosTela = () => {
           id: jogo.id || Math.random().toString(36).substring(7),
           nome: jogo.titulo || jogo.título || jogo.title || 'Nome não disponível',
           genero: jogo.genero || jogo.genre || 'Gênero não informado',
-          plataforma: (jogo.plataforma || jogo.platform || 'Plataforma não informada').toLowerCase(), 
+          plataforma: jogo.plataforma || jogo.platform || 'Plataforma não informada',
           imagem: jogo.imagem || jogo.imagem_url || jogo.image || 'https://via.placeholder.com/200?text=Sem+Imagem',
           requisitos: jogo.requisitos || jogo.requirements || 'Requisitos não disponíveis',
           desenvolvedor: jogo.desenvolvedor || jogo.developer || 'Desenvolvedor não informado',
@@ -156,10 +111,47 @@ const JogosTela = () => {
   }, []);
 
   useEffect(() => {
-    const jogosResultantes = filtrarEOrdenarJogos(jogos, filtroAtual, filtroPlataforma, termoBusca);
-    setJogosFiltrados(jogosResultantes);
+    if (!termoBusca.trim()) {
+      aplicarFiltro(filtroAtual);
+    } else {
+      const termo = termoBusca.toLowerCase().trim();
+      const filtrados = jogos.filter(jogo =>
+        jogo.nome.toLowerCase().includes(termo) ||
+        jogo.genero.toLowerCase().includes(termo) ||
+        jogo.plataforma.toLowerCase().includes(termo) ||
+        jogo.desenvolvedor.toLowerCase().includes(termo)
+      );
+
+      let resultadosOrdenados = [...filtrados];
+      
+      if (filtroAtual === 'novos') {
+        resultadosOrdenados.sort((a, b) => {
+          const dataA = new Date(a.dataLancamento);
+          const dataB = new Date(b.dataLancamento);
+          return dataB - dataA;
+        });
+      } else if (filtroAtual === 'antigos') {
+        resultadosOrdenados.sort((a, b) => {
+          const dataA = new Date(a.dataLancamento);
+          const dataB = new Date(b.dataLancamento);
+          return dataA - dataB;
+        });
+      } else if (filtroAtual === 'lancamento') {
+        const hoje = new Date();
+        resultadosOrdenados = filtrados.filter(jogo => {
+          const dataLancamento = new Date(jogo.dataLancamento);
+          return dataLancamento > hoje;
+        }).sort((a, b) => {
+          const dataA = new Date(a.dataLancamento);
+          const dataB = new Date(b.dataLancamento);
+          return dataA - dataB;
+        });
+      }
+      
+      setJogosFiltrados(resultadosOrdenados);
+    }
     setPaginaAtual(1);
-  }, [termoBusca, jogos, filtroAtual, filtroPlataforma]);
+  }, [termoBusca, jogos]);
 
   const totalPaginas = Math.ceil(jogosFiltrados.length / jogosPorPagina);
   const inicio = (paginaAtual - 1) * jogosPorPagina;
@@ -175,39 +167,14 @@ const JogosTela = () => {
   const abrirModal = (jogo) => setJogoSelecionado(jogo);
   const fecharModal = () => setJogoSelecionado(null);
 
-  const isFiltroAtivo = filtroAtual !== 'Filtrar' || filtroPlataforma !== 'todos';
-  
   const obterTextoFiltro = () => {
-      let partes = [];
-
-      switch (filtroAtual) {
-          case 'novos': partes.push('Novos'); break;
-          case 'antigos': partes.push('Antigos'); break;
-          case 'lancamento': partes.push('A Lançar'); break;
-          default: break;
-      }
-      
-      if (filtroPlataforma !== 'todos') {
-          const plataformaNome = filtroPlataforma
-              .split(' ')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ')
-              .replace('Nintendo Switch', 'Switch')
-              .replace('Pc', 'PC');
-              
-          partes.push(plataformaNome);
-      }
-
-      return partes.length > 0 ? partes.join(' + ') : 'Filtrar';
-  };
-  
-  const getPlatformIcon = (plataforma) => {
-    if (plataforma.includes('xbox')) return 'logo-xbox';
-    if (plataforma.includes('ps')) return 'logo-playstation';
-    if (plataforma.includes('pc')) return 'desktop-outline';
-    if (plataforma.includes('nintendo')) return 'game-controller-outline';
-    if (plataforma.includes('mobile')) return 'phone-portrait-outline';
-    return 'grid-outline';
+    switch (filtroAtual) {
+      case 'Filtrar': return 'Filtrar';
+      case 'novos': return 'Mais Novos';
+      case 'antigos': return 'Mais Antigos';
+      case 'lancamento': return 'A Lançar';
+      default: return 'Filtrar';
+    }
   };
 
   const renderizarItem = ({ item }) => (
@@ -238,7 +205,6 @@ const JogosTela = () => {
       </View>
 
       <View style={styles.controlesContainer}>
-        {/* Barra de Busca */}
         <View style={styles.buscaContainer}>
           <Ionicons name="search" size={20} color="#FFF" style={styles.iconeBusca} />
           <TextInput
@@ -250,16 +216,15 @@ const JogosTela = () => {
           />
         </View>
 
-        {/* Botão de Filtro */}
         <TouchableOpacity 
-          style={[styles.botaoFiltro, isFiltroAtivo && styles.botaoFiltroAtivo]} 
+          style={[styles.botaoFiltro, filtroAtual !== 'Filtrar' && styles.botaoFiltroAtivo]} 
           onPress={() => setModalFiltroVisivel(true)}
         >
-          <Ionicons name="filter" size={20} color={isFiltroAtivo ? '#FFFFFF' : '#FFF'} />
-          <Text style={[styles.textoBotaoFiltro, isFiltroAtivo && styles.textoBotaoFiltroAtivo]}>
+          <Ionicons name="filter" size={20} color={filtroAtual !== 'Filtrar' ? '#FFFFFF' : '#FFF'} />
+          <Text style={[styles.textoBotaoFiltro, filtroAtual !== 'Filtrar' && styles.textoBotaoFiltroAtivo]}>
             {obterTextoFiltro()}
           </Text>
-          {isFiltroAtivo && (
+          {filtroAtual !== 'Filtrar' && (
             <TouchableOpacity 
               style={styles.botaoRemoverFiltro}
               onPress={(e) => {
@@ -274,18 +239,17 @@ const JogosTela = () => {
       </View>
 
       {/* Indicador de filtro ativo */}
-      {isFiltroAtivo && (
+      {filtroAtual !== 'Filtrar' && (
         <View style={styles.indicadorFiltro}>
           <Text style={styles.textoIndicadorFiltro}>
             Filtro ativo: {obterTextoFiltro()}
           </Text>
           <TouchableOpacity onPress={removerFiltros}>
-            <Text style={styles.botaoRemoverFiltroTexto}>Remover tudo</Text>
+            <Text style={styles.botaoRemoverFiltroTexto}>Remover filtro</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Lista de Jogos */}
       {jogosFiltrados.length > 0 ? (
         <>
           <FlatList
@@ -313,12 +277,12 @@ const JogosTela = () => {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Nenhum jogo encontrado</Text>
           <Text style={styles.emptySubtext}>
-            {isFiltroAtivo 
+            {filtroAtual !== 'Filtrar' 
               ? `Tente remover o filtro "${obterTextoFiltro()}" ou fazer uma busca diferente.`
               : 'Tente uma busca diferente ou verifique a conexão.'
             }
           </Text>
-          {isFiltroAtivo && (
+          {filtroAtual !== 'Filtrar' && (
             <TouchableOpacity style={styles.botaoRemoverFiltroEmpty} onPress={removerFiltros}>
               <Text style={styles.botaoRemoverFiltroEmptyTexto}>Remover filtro</Text>
             </TouchableOpacity>
@@ -326,7 +290,7 @@ const JogosTela = () => {
         </View>
       )}
 
-      {/* Modal de Filtro (Ordenação e Plataforma) */}
+      {/* Modal de Filtro */}
       <Modal
         visible={modalFiltroVisivel}
         animationType="slide"
@@ -335,96 +299,79 @@ const JogosTela = () => {
       >
         <View style={styles.modalFiltroOverlay}>
           <View style={styles.modalFiltroContainer}>
-            <ScrollView>
-                <Text style={styles.modalFiltroTitulo}>Ordenar por Data</Text>
-                
-                {/* Opções de ORDENAÇÃO */}
-                <TouchableOpacity 
-                    style={[styles.opcaoFiltro, filtroAtual === 'Filtrar' && styles.opcaoFiltroSelecionada]}
-                    onPress={() => aplicarFiltroOrdenacao('Filtrar')}
-                >
-                    <Ionicons name="list" size={20} color={filtroAtual === 'Filtrar' ? '#A259FF' : '#BBBBBB'} />
-                    <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'Filtrar' && styles.textoOpcaoFiltroSelecionado]}>
-                        Padrão / Sem Ordenação
-                    </Text>
-                    {filtroAtual === 'Filtrar' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.opcaoFiltro, filtroAtual === 'novos' && styles.opcaoFiltroSelecionada]}
-                    onPress={() => aplicarFiltroOrdenacao('novos')}
-                >
-                    <Ionicons name="arrow-down" size={20} color={filtroAtual === 'novos' ? '#A259FF' : '#BBBBBB'} />
-                    <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'novos' && styles.textoOpcaoFiltroSelecionado]}>
-                        Mais Novos
-                    </Text>
-                    {filtroAtual === 'novos' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.opcaoFiltro, filtroAtual === 'antigos' && styles.opcaoFiltroSelecionada]}
-                    onPress={() => aplicarFiltroOrdenacao('antigos')}
-                >
-                    <Ionicons name="arrow-up" size={20} color={filtroAtual === 'antigos' ? '#A259FF' : '#BBBBBB'} />
-                    <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'antigos' && styles.textoOpcaoFiltroSelecionado]}>
-                        Mais Antigos
-                    </Text>
-                    {filtroAtual === 'antigos' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.opcaoFiltro, filtroAtual === 'lancamento' && styles.opcaoFiltroSelecionada]}
-                    onPress={() => aplicarFiltroOrdenacao('lancamento')}
-                >
-                    <Ionicons name="calendar" size={20} color={filtroAtual === 'lancamento' ? '#A259FF' : '#BBBBBB'} />
-                    <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'lancamento' && styles.textoOpcaoFiltroSelecionado]}>
-                        A Lançar
-                    </Text>
-                    {filtroAtual === 'lancamento' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
-                </TouchableOpacity>
+            <Text style={styles.modalFiltroTitulo}>Ordenar por</Text>
+            
+            <TouchableOpacity 
+              style={[styles.opcaoFiltro, filtroAtual === 'Filtrar' && styles.opcaoFiltroSelecionada]}
+              onPress={() => aplicarFiltro('Filtrar')}
+            >
+              <Ionicons 
+                name="list" 
+                size={20} 
+                color={filtroAtual === 'Filtrar' ? '#A259FF' : '#BBBBBB'} 
+              />
+              <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'Filtrar' && styles.textoOpcaoFiltroSelecionado]}>
+                Todos (Sem filtro)
+              </Text>
+              {filtroAtual === 'Filtrar' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
+            </TouchableOpacity>
 
-                {/* Filtro por Plataforma */}
-                <View style={styles.separador} />
-                <Text style={styles.modalFiltroTitulo}>Filtrar por Plataforma</Text>
+            <TouchableOpacity 
+              style={[styles.opcaoFiltro, filtroAtual === 'novos' && styles.opcaoFiltroSelecionada]}
+              onPress={() => aplicarFiltro('novos')}
+            >
+              <Ionicons 
+                name="arrow-down" 
+                size={20} 
+                color={filtroAtual === 'novos' ? '#A259FF' : '#BBBBBB'} 
+              />
+              <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'novos' && styles.textoOpcaoFiltroSelecionado]}>
+                Mais Novos
+              </Text>
+              {filtroAtual === 'novos' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
+            </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={[styles.opcaoFiltro, filtroPlataforma === 'todos' && styles.opcaoFiltroSelecionada]}
-                    onPress={() => aplicarFiltroPlataforma('todos')}
-                >
-                    <Ionicons name="globe-outline" size={20} color={filtroPlataforma === 'todos' ? '#A259FF' : '#BBBBBB'} />
-                    <Text style={[styles.textoOpcaoFiltro, filtroPlataforma === 'todos' && styles.textoOpcaoFiltroSelecionado]}>
-                        Todas as Plataformas
-                    </Text>
-                    {filtroPlataforma === 'todos' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
-                </TouchableOpacity>
-                
-                {PLATAFORMAS_DISPONIVEIS.map((plataforma) => (
-                    <TouchableOpacity 
-                        key={plataforma}
-                        style={[styles.opcaoFiltro, filtroPlataforma === plataforma && styles.opcaoFiltroSelecionada]}
-                        onPress={() => aplicarFiltroPlataforma(plataforma)}
-                    >
-                        <Ionicons 
-                            name={getPlatformIcon(plataforma)}
-                            size={20} 
-                            color={filtroPlataforma === plataforma ? '#A259FF' : '#BBBBBB'} 
-                        />
-                        <Text style={[styles.textoOpcaoFiltro, filtroPlataforma === plataforma && styles.textoOpcaoFiltroSelecionado]}>
-                            {plataforma.toUpperCase().replace('NINTENDO SWITCH', 'NINTENDO Switch')}
-                        </Text>
-                        {filtroPlataforma === plataforma && <Ionicons name="checkmark" size={20} color="#A259FF" />}
-                    </TouchableOpacity>
-                ))}
+            <TouchableOpacity 
+              style={[styles.opcaoFiltro, filtroAtual === 'antigos' && styles.opcaoFiltroSelecionada]}
+              onPress={() => aplicarFiltro('antigos')}
+            >
+              <Ionicons 
+                name="arrow-up" 
+                size={20} 
+                color={filtroAtual === 'antigos' ? '#A259FF' : '#BBBBBB'} 
+              />
+              <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'antigos' && styles.textoOpcaoFiltroSelecionado]}>
+                Mais Antigos
+              </Text>
+              {filtroAtual === 'antigos' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
+            </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={styles.botaoFecharFiltro}
-                    onPress={() => setModalFiltroVisivel(false)}
-                >
-                    <Text style={styles.textoBotaoFecharFiltro}>Fechar</Text>
-                </TouchableOpacity>
-            </ScrollView>
+            <TouchableOpacity 
+              style={[styles.opcaoFiltro, filtroAtual === 'lancamento' && styles.opcaoFiltroSelecionada]}
+              onPress={() => aplicarFiltro('lancamento')}
+            >
+              <Ionicons 
+                name="calendar" 
+                size={20} 
+                color={filtroAtual === 'lancamento' ? '#A259FF' : '#BBBBBB'} 
+              />
+              <Text style={[styles.textoOpcaoFiltro, filtroAtual === 'lancamento' && styles.textoOpcaoFiltroSelecionado]}>
+                A Lançar
+              </Text>
+              {filtroAtual === 'lancamento' && <Ionicons name="checkmark" size={20} color="#A259FF" />}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.botaoFecharFiltro}
+              onPress={() => setModalFiltroVisivel(false)}
+            >
+              <Text style={styles.textoBotaoFecharFiltro}>Fechar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Modal de Detalhes do Jogo (mantido) */}
+      {/* Modal de Detalhes do Jogo */}
       <Modal visible={!!jogoSelecionado} animationType="slide" transparent={false} onRequestClose={fecharModal}>
         {jogoSelecionado && (
           <ScrollView style={styles.modalContainer}>
@@ -445,7 +392,7 @@ const JogosTela = () => {
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="desktop-outline" size={18} color="#A259FF" style={styles.iconeInfo} />
-                <Text style={styles.infoText}><Text style={styles.infoLabel}>Plataforma: </Text>{jogoSelecionado.plataforma.toUpperCase()}</Text>
+                <Text style={styles.infoText}><Text style={styles.infoLabel}>Plataforma: </Text>{jogoSelecionado.plataforma}</Text>
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="business-outline" size={18} color="#A259FF" style={styles.iconeInfo} />
@@ -674,20 +621,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: Dimensions.get('window').height * 0.7, 
+    paddingBottom: 40,
   },
   modalFiltroTitulo: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  separador: {
-      borderBottomColor: '#3A1A6A',
-      borderBottomWidth: 1,
-      marginVertical: 15,
+    marginBottom: 20,
   },
   opcaoFiltro: {
     flexDirection: 'row',
@@ -695,7 +636,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderRadius: 10,
-    marginBottom: 5,
+    marginBottom: 10,
   },
   opcaoFiltroSelecionada: {
     backgroundColor: 'rgba(162, 89, 255, 0.2)',
@@ -715,8 +656,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 10,
   },
   textoBotaoFecharFiltro: {
     color: '#FFFFFF',

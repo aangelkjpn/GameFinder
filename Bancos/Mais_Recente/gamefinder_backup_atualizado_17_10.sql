@@ -36,12 +36,14 @@ CREATE TABLE IF NOT EXISTS `avaliacoes` (
   KEY `jogo_id` (`jogo_id`),
   CONSTRAINT `avaliacoes_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `cadastro` (`id`),
   CONSTRAINT `avaliacoes_ibfk_2` FOREIGN KEY (`jogo_id`) REFERENCES `jogos` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Copiando dados para a tabela gamefinder.avaliacoes: ~2 rows (aproximadamente)
+-- Copiando dados para a tabela gamefinder.avaliacoes: ~4 rows (aproximadamente)
 INSERT INTO `avaliacoes` (`id`, `usuario_id`, `jogo_id`, `nota`, `comentario`, `tags`, `data_criacao`, `data_atualizacao`) VALUES
 	(37, 8, 521, 9.0, 'Muito divertido', 'Suspense,Terror,Sobrevivência,Aventura,Multijogador', '2025-10-17 08:35:54', '2025-10-17 08:35:54'),
-	(38, 32, 515, 9.0, 'Olha essa geometria, como isso é jogavel', 'Sobrevivência,Realista,História Rica,Aventura', '2025-10-17 08:38:01', '2025-10-17 08:38:01');
+	(38, 32, 515, 9.0, 'Olha essa geometria, como isso é jogavel', 'Sobrevivência,Realista,História Rica,Aventura', '2025-10-17 08:38:01', '2025-10-17 08:38:01'),
+	(41, 32, 25, 10.0, 'História muito foda', 'Aventura,História Rica', '2025-10-17 10:37:48', '2025-10-17 10:37:48'),
+	(42, 16, 136, 10.0, 'Jogo muito bom! Super relaxante e divertido! Amei!', 'Aventura,Puzzle,Mundo Aberto,História Rica,Indie', '2025-10-17 10:39:43', '2025-10-17 10:39:43');
 
 -- Copiando estrutura para tabela gamefinder.cadastro
 DROP TABLE IF EXISTS `cadastro`;

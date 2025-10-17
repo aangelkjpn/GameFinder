@@ -1,38 +1,53 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ScrollView, Modal, Alert, ActivityIndicator, Linking, Image, ImageBackground } from 'react-native';
+import {View,Text,StyleSheet,FlatList,TouchableOpacity,TextInput,ScrollView,Modal,Alert,ActivityIndicator,Linking,Image,ImageBackground} from 'react-native';
 import { useState, useEffect } from 'react';
 import { AntDesign, Feather, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const USER_PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150/4D1F8C/FFFFFF?text=👤';
+
 const USER_AVATAR_KEY = 'user_avatar_url';
 const USER_BANNER_KEY = 'user_banner_url';
+
+const AVATAR_UPDATE_EVENT = 'avatar_updated';
 
 const safeParse = (data, fallback = {}) => {
   try {
     const parsed = JSON.parse(data);
     return Array.isArray(parsed) ? parsed : fallback;
   } catch (error) {
+    console.error('Error parsing JSON:', error);
     return fallback;
   }
 };
 
 const useAvatarUpdate = () => {
   const [avatarUpdateCount, setAvatarUpdateCount] = useState(0);
-  const triggerAvatarUpdate = () => setAvatarUpdateCount(prev => prev + 1);
+
+  const triggerAvatarUpdate = () => {
+    setAvatarUpdateCount(prev => prev + 1);
+  };
+
   return { avatarUpdateCount, triggerAvatarUpdate };
 };
 
 const loadUserAvatar = async (userId) => {
   try {
     if (!userId) return USER_PLACEHOLDER_IMAGE;
+    
     const storedAvatar = await AsyncStorage.getItem(`${USER_AVATAR_KEY}_${userId}`);
-    return storedAvatar || USER_PLACEHOLDER_IMAGE;
+    if (storedAvatar) {
+      return storedAvatar;
+    }
+    
+    return USER_PLACEHOLDER_IMAGE;
   } catch (error) {
+    console.error('Erro ao carregar avatar do usuário:', error);
     return USER_PLACEHOLDER_IMAGE;
   }
 };
 
+// Componente de Card de Perfil
 const ProfileCard = ({ usuario, onAvatarUpdate }) => {
   const [avatarSource, setAvatarSource] = useState(null);
   const [bannerSource, setBannerSource] = useState(null);
@@ -48,6 +63,8 @@ const ProfileCard = ({ usuario, onAvatarUpdate }) => {
             setAvatarSource({ uri: usuario.avatar_url });
             await AsyncStorage.setItem(`${USER_AVATAR_KEY}_${usuario.id}`, usuario.avatar_url);
           }
+        } else {
+          setAvatarSource(null);
         }
 
         if (usuario.banner_url) {
@@ -58,8 +75,11 @@ const ProfileCard = ({ usuario, onAvatarUpdate }) => {
             setBannerSource({ uri: usuario.banner_url });
             await AsyncStorage.setItem(`${USER_BANNER_KEY}_${usuario.id}`, usuario.banner_url);
           }
+        } else {
+          setBannerSource(null);
         }
       } catch (error) {
+        console.error('Erro ao carregar imagens do storage:', error);
         setAvatarSource(usuario.avatar_url ? { uri: usuario.avatar_url } : null);
         setBannerSource(usuario.banner_url ? { uri: usuario.banner_url } : null);
       }
@@ -109,7 +129,7 @@ const ProfileCard = ({ usuario, onAvatarUpdate }) => {
   };
 
   const renderPronouns = () => {
-    if (usuario.pronouns?.trim()) {
+    if (usuario.pronouns && usuario.pronouns.trim()) {
       return <Text style={profileStyles.pronounsText}>{usuario.pronouns}</Text>;
     }
     return null;
@@ -184,7 +204,7 @@ const ProfileCard = ({ usuario, onAvatarUpdate }) => {
           </Text>
         ) : null}
       </View>
-
+      
       {renderPreferences()}
       {renderTopGames()}
     </View>
@@ -202,6 +222,7 @@ const ProfileCard = ({ usuario, onAvatarUpdate }) => {
   );
 };
 
+// Modal de Perfil do Usuário
 const UserProfileModal = ({ visible, onClose, user, onAvatarUpdate }) => {
   if (!user) return null;
 
@@ -214,14 +235,14 @@ const UserProfileModal = ({ visible, onClose, user, onAvatarUpdate }) => {
             <AntDesign name="close" size={24} color="#F5E6FF" />
           </TouchableOpacity>
         </View>
-
-        <ScrollView
-          style={userProfileModalStyles.content}
+        
+        <ScrollView 
+          style={userProfileModalStyles.content} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={userProfileModalStyles.scrollContent}
         >
           <ProfileCard usuario={user} onAvatarUpdate={onAvatarUpdate} />
-
+          
           <TouchableOpacity style={userProfileModalStyles.closeProfileButton} onPress={onClose}>
             <Text style={userProfileModalStyles.buttonText}>Fechar Perfil</Text>
           </TouchableOpacity>
@@ -231,20 +252,21 @@ const UserProfileModal = ({ visible, onClose, user, onAvatarUpdate }) => {
   );
 };
 
+// Modal de Seleção de Jogos
 const GameSelectionModal = ({ visible, onClose, onGameSelect }) => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredGames, setFilteredGames] = useState([]);
-  const API_URL = 'http://10.111.9.99:3000/api';
 
   const loadGames = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/jogos`);
+      const response = await axios.get('http://10.111.9.99:3000/api/jogos');
       setGames(response.data);
       setFilteredGames(response.data);
     } catch (error) {
+      console.error('Erro ao carregar jogos:', error);
       Alert.alert('Erro', 'Não foi possível carregar a lista de jogos.');
     } finally {
       setLoading(false);
@@ -282,7 +304,8 @@ const GameSelectionModal = ({ visible, onClose, onGameSelect }) => {
               <AntDesign name="close" size={24} color="#F5E6FF" />
             </TouchableOpacity>
           </View>
-
+          
+          {/* Barra de pesquisa */}
           <View style={gameSelectionModalStyles.searchContainer}>
             <Feather name="search" size={20} color="#C7A3FF" />
             <TextInput
@@ -304,7 +327,7 @@ const GameSelectionModal = ({ visible, onClose, onGameSelect }) => {
               data={filteredGames}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <TouchableOpacity
+                <TouchableOpacity 
                   style={gameSelectionModalStyles.gameItem}
                   onPress={() => onGameSelect(item)}
                 >
@@ -339,7 +362,7 @@ const GameSelectionModal = ({ visible, onClose, onGameSelect }) => {
               }
             />
           )}
-
+          
           <TouchableOpacity style={gameSelectionModalStyles.cancelButton} onPress={onClose}>
             <Text style={gameSelectionModalStyles.buttonText}>Cancelar</Text>
           </TouchableOpacity>
@@ -349,7 +372,8 @@ const GameSelectionModal = ({ visible, onClose, onGameSelect }) => {
   );
 };
 
-const EntryModal = ({
+// Modal de Entrada/Avaliação
+const EntryModal = ({ 
   visible,
   onClose,
   title,
@@ -363,7 +387,7 @@ const EntryModal = ({
   onSave,
 }) => {
   const availableTags = [
-    'Terror', 'Suspense', 'FPS', 'Sobrevivência', 'Zumbi',
+    'Terror', 'Suspense', 'FPS', 'Sobrevivência', 'Zumbi', 
     'Ação', 'Aventura', 'RPG', 'Estratégia', 'Esportes',
     'Corrida', 'Luta', 'Plataforma', 'Puzzle', 'Simulação',
     'Multijogador', 'Cooperativo', 'Competitivo', 'Mundo Aberto',
@@ -380,25 +404,72 @@ const EntryModal = ({
     const gameCompany = selectedGame.empresa?.toLowerCase() || '';
     const userComment = comment?.toLowerCase() || '';
 
+    // Mapeamento de palavras-chave para tags
     const tagMappings = {
-      'terror': 'Terror', 'horror': 'Terror', 'medo': 'Terror',
-      'suspense': 'Suspense', 'mistério': 'Suspense',
-      'fps': 'FPS', 'tiro': 'FPS', 'shooter': 'FPS',
-      'sobrevivência': 'Sobrevivência', 'survival': 'Sobrevivência',
-      'zumbi': 'Zumbi', 'zombie': 'Zumbi',
-      'ação': 'Ação', 'action': 'Ação', 'aventura': 'Aventura',
-      'rpg': 'RPG', 'estratégia': 'Estratégia', 'esportes': 'Esportes',
-      'corrida': 'Corrida', 'luta': 'Luta', 'plataforma': 'Plataforma',
-      'puzzle': 'Puzzle', 'simulação': 'Simulação', 'multijogador': 'Multijogador',
-      'cooperativo': 'Cooperativo', 'competitivo': 'Competitivo',
-      'mundo aberto': 'Mundo Aberto', 'linear': 'Linear', 'realista': 'Realista',
-      'estilizado': 'Estilizado', 'violento': 'Violento', 'family friendly': 'Family Friendly',
-      'história': 'História Rica', 'grátis': 'Grátis', 'premium': 'Premium',
-      'indie': 'Indie', 'aaa': 'AAA'
+      'terror': 'Terror',
+      'horror': 'Terror',
+      'medo': 'Terror',
+      'suspense': 'Suspense',
+      'mistério': 'Suspense',
+      'fps': 'FPS',
+      'tiro': 'FPS',
+      'shooter': 'FPS',
+      'sobrevivência': 'Sobrevivência',
+      'survival': 'Sobrevivência',
+      'zumbi': 'Zumbi',
+      'zombie': 'Zumbi',
+      'ação': 'Ação',
+      'action': 'Ação',
+      'aventura': 'Aventura',
+      'adventure': 'Aventura',
+      'rpg': 'RPG',
+      'role playing': 'RPG',
+      'estratégia': 'Estratégia',
+      'strategy': 'Estratégia',
+      'esportes': 'Esportes',
+      'sports': 'Esportes',
+      'corrida': 'Corrida',
+      'racing': 'Corrida',
+      'luta': 'Luta',
+      'fighting': 'Luta',
+      'plataforma': 'Plataforma',
+      'platform': 'Plataforma',
+      'puzzle': 'Puzzle',
+      'quebra-cabeça': 'Puzzle',
+      'simulação': 'Simulação',
+      'simulation': 'Simulação',
+      'multiplayer': 'Multijogador',
+      'multijogador': 'Multijogador',
+      'coop': 'Cooperativo',
+      'cooperativo': 'Cooperativo',
+      'competitivo': 'Competitivo',
+      'competitive': 'Competitivo',
+      'mundo aberto': 'Mundo Aberto',
+      'open world': 'Mundo Aberto',
+      'linear': 'Linear',
+      'realista': 'Realista',
+      'realistic': 'Realista',
+      'estilizado': 'Estilizado',
+      'stylized': 'Estilizado',
+      'violento': 'Violento',
+      'violent': 'Violento',
+      'family friendly': 'Family Friendly',
+      'família': 'Family Friendly',
+      'história': 'História Rica',
+      'story': 'História Rica',
+      'narrativa': 'História Rica',
+      'grátis': 'Grátis',
+      'free': 'Grátis',
+      'premium': 'Premium',
+      'pago': 'Premium',
+      'indie': 'Indie',
+      'independente': 'Indie',
+      'aaa': 'AAA',
+      'triple a': 'AAA'
     };
 
     const searchText = `${gameTitle} ${gameGenre} ${gameCompany} ${userComment}`;
-
+    
     Object.keys(tagMappings).forEach(keyword => {
       if (searchText.includes(keyword)) {
         const tag = tagMappings[keyword];
@@ -408,18 +479,33 @@ const EntryModal = ({
       }
     });
 
+    if (gameGenre.includes('terror') || gameGenre.includes('horror')) {
+      if (!autoTags.includes('Terror')) autoTags.push('Terror');
+    }
+    if (gameGenre.includes('ação')) {
+      if (!autoTags.includes('Ação')) autoTags.push('Ação');
+    }
+    if (gameGenre.includes('rpg')) {
+      if (!autoTags.includes('RPG')) autoTags.push('RPG');
+    }
+    if (gameGenre.includes('fps') || gameGenre.includes('tiro')) {
+      if (!autoTags.includes('FPS')) autoTags.push('FPS');
+    }
+
     const finalTags = autoTags.slice(0, 5);
 
     if (finalTags.length > 0) {
       setSelectedTags([...selectedTags, ...finalTags]);
       Alert.alert(
         'Tags Auto Selecionadas',
-        `Foram adicionadas ${finalTags.length} tags baseadas no jogo e seu comentário: ${finalTags.join(', ')}`
+        `Foram adicionadas ${finalTags.length} tags baseadas no jogo e seu comentário: ${finalTags.join(', ')}`,
+        [{ text: 'OK', style: 'default' }]
       );
     } else {
       Alert.alert(
         'Nenhuma Tag Encontrada',
-        'Não foi possível encontrar tags relevantes automaticamente. Por favor, selecione manualmente.'
+        'Não foi possível encontrar tags relevantes automaticamente. Por favor, selecione manualmente.',
+        [{ text: 'OK', style: 'default' }]
       );
     }
   };
@@ -455,9 +541,14 @@ const EntryModal = ({
 
   const handleSave = () => {
     if (rating === 0) {
-      Alert.alert('Avaliação Incompleta', 'Por favor, selecione uma avaliação de 1 a 10 estrelas antes de salvar.');
+      Alert.alert(
+        'Avaliação Incompleta',
+        'Por favor, selecione uma avaliação de 1 a 10 estrelas antes de salvar.',
+        [{ text: 'OK', style: 'default' }]
+      );
       return;
     }
+    
     onSave();
   };
 
@@ -471,7 +562,8 @@ const EntryModal = ({
               <AntDesign name="close" size={24} color="#F5E6FF" />
             </TouchableOpacity>
           </View>
-
+          
+          {/* Jogo selecionado */}
           {selectedGame && (
             <View style={entryModalStyles.selectedGameContainer}>
               <View style={entryModalStyles.selectedGameHeader}>
@@ -496,7 +588,7 @@ const EntryModal = ({
 
           <Text style={entryModalStyles.subtitle}>Sua avaliação:</Text>
           {renderRatingStars()}
-
+          
           <Text style={entryModalStyles.subtitle}>Comentário (opcional):</Text>
           <View style={entryModalStyles.commentInputContainer}>
             <TextInput
@@ -510,8 +602,9 @@ const EntryModal = ({
             />
           </View>
 
+          {/* Botão de Auto Seleção de Tags */}
           <View style={entryModalStyles.autoTagsSection}>
-            <TouchableOpacity
+            <TouchableOpacity 
               style={entryModalStyles.autoTagsButton}
               onPress={autoSelectTags}
               disabled={!selectedGame}
@@ -549,8 +642,8 @@ const EntryModal = ({
             <TouchableOpacity style={entryModalStyles.cancelButton} onPress={onClose}>
               <Text style={entryModalStyles.buttonText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[entryModalStyles.saveButton, !selectedGame && entryModalStyles.saveButtonDisabled]}
+            <TouchableOpacity 
+              style={[entryModalStyles.saveButton, !selectedGame && entryModalStyles.saveButtonDisabled]} 
               onPress={handleSave}
               disabled={!selectedGame}
             >
@@ -577,9 +670,9 @@ export default function GameDiaryScreen() {
   const [loading, setLoading] = useState(true);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [diaryEntries, setDiaryEntries] = useState([]);
-  const [entriesLoaded, setEntriesLoaded] = useState(false);
-
+  
   const { avatarUpdateCount, triggerAvatarUpdate } = useAvatarUpdate();
+
   const API_URL = 'http://10.111.9.99:3000/api';
 
   const saveUserImageToStorage = async (userId, imageUrl, storageKey) => {
@@ -596,7 +689,8 @@ export default function GameDiaryScreen() {
   const loadUserImageFromStorage = async (userId, storageKey) => {
     try {
       if (userId) {
-        return await AsyncStorage.getItem(`${storageKey}_${userId}`);
+        const storedImage = await AsyncStorage.getItem(`${storageKey}_${userId}`);
+        return storedImage;
       }
     } catch (error) {
       console.error('Erro ao carregar imagem do storage:', error);
@@ -608,7 +702,10 @@ export default function GameDiaryScreen() {
     try {
       const updatedEntries = diaryEntries.map(entry => {
         if (entry.usuario_id === userId) {
-          return { ...entry, foto_usuario: newAvatarUrl };
+          return {
+            ...entry,
+            foto_usuario: newAvatarUrl
+          };
         }
         return entry;
       });
@@ -620,11 +717,12 @@ export default function GameDiaryScreen() {
 
   const loadUserData = async () => {
     try {
+      setLoading(true);
       const storedUserId = await AsyncStorage.getItem('userId');
       if (storedUserId) {
         const response = await axios.get(`${API_URL}/usuario/${storedUserId}`);
         const userData = response.data;
-
+        
         const storedAvatar = await loadUserImageFromStorage(userData.id, USER_AVATAR_KEY);
         if (storedAvatar) {
           userData.avatar_url = storedAvatar;
@@ -640,7 +738,7 @@ export default function GameDiaryScreen() {
         }
 
         setCurrentUser(userData);
-
+        
         if (userData.avatar_url) {
           await updateAvatarInEntries(userData.id, userData.avatar_url);
         }
@@ -650,40 +748,42 @@ export default function GameDiaryScreen() {
     } catch (error) {
       console.error('Erro ao carregar dados do usuário:', error);
       setCurrentUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const loadAvaliacoes = async () => {
     try {
-      setEntriesLoaded(false);
       setLoading(true);
       const response = await axios.get(`${API_URL}/avaliacoes`);
-
+      
       const avaliacoesProcessadas = await Promise.all(
         response.data.map(async (av) => {
           const userAvatar = await loadUserAvatar(av.usuario_id);
 
           return {
             id: av.id,
-            game: av.nome_jogo || av.jogo_nome || 'Jogo desconhecido',
+            game: av.nome_jogo,
             date: new Date(av.data_criacao).toLocaleDateString('pt-BR'),
             rating: Number(av.nota) || 0,
-            comment: av.comentario || '',
-            tags: (typeof av.tags === 'string' ? av.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : av.tags) || [],
+            comment: av.comentario,
+            tags:
+              (typeof av.tags === 'string'
+                ? av.tags.split(',').map((tag) => tag.trim())
+                : av.tags) || [],
             usuario_id: av.usuario_id,
-            nome_usuario: av.nome_usuario || 'Usuário',
+            nome_usuario: av.nome_usuario,
             foto_usuario: userAvatar,
           };
         })
       );
-
       setDiaryEntries(avaliacoesProcessadas);
     } catch (error) {
       console.error('Erro ao carregar avaliações:', error);
       Alert.alert('Erro', 'Não foi possível carregar as avaliações.');
     } finally {
       setLoading(false);
-      setEntriesLoaded(true);
     }
   };
 
@@ -691,12 +791,16 @@ export default function GameDiaryScreen() {
     try {
       const response = await axios.get(`${API_URL}/usuario/${userId}`);
       const userData = response.data;
-
+      
       const storedAvatar = await loadUserImageFromStorage(userId, USER_AVATAR_KEY);
-      if (storedAvatar) userData.avatar_url = storedAvatar;
+      if (storedAvatar) {
+        userData.avatar_url = storedAvatar;
+      }
 
       const storedBanner = await loadUserImageFromStorage(userId, USER_BANNER_KEY);
-      if (storedBanner) userData.banner_url = storedBanner;
+      if (storedBanner) {
+        userData.banner_url = storedBanner;
+      }
 
       setSelectedUser(userData);
       setUserProfileModalVisible(true);
@@ -712,13 +816,8 @@ export default function GameDiaryScreen() {
 
   useEffect(() => {
     loadUserData();
+    loadAvaliacoes();
   }, [avatarUpdateCount]);
-
-  useEffect(() => {
-    if (activeTab === 'diary' && currentUser !== undefined) {
-      loadAvaliacoes();
-    }
-  }, [activeTab, currentUser]);
 
   const handleAvatarUpdate = async () => {
     await loadUserData();
@@ -752,7 +851,7 @@ export default function GameDiaryScreen() {
       return Alert.alert('Erro', 'Dados incompletos para salvar a avaliação.');
     }
     try {
-      await axios.post(`${API_URL}/salvar-avaliacao`, {
+      const response = await axios.post(`${API_URL}/salvar-avaliacao`, {
         usuario_id: currentUser.id,
         jogo_nome: selectedGame.titulo,
         nota: currentRating,
@@ -760,9 +859,30 @@ export default function GameDiaryScreen() {
         tags: selectedTags,
       });
 
+      const currentAvatar = await loadUserAvatar(currentUser.id);
+
+      const newReview = {
+        id: response.data.id || Date.now(),
+        game: selectedGame.titulo,
+        date: new Date().toLocaleDateString('pt-BR'),
+        rating: currentRating,
+        comment: comment,
+        tags: selectedTags,
+        usuario_id: currentUser.id,
+        nome_usuario: currentUser.usuario || currentUser.nome,
+        foto_usuario: currentAvatar,
+        ...response.data
+      };
+
+      setDiaryEntries(prevEntries => [newReview, ...prevEntries]);
+      
       setRatingModalVisible(false);
       resetEntryForm();
-      loadAvaliacoes();
+      
+      setTimeout(() => {
+        loadAvaliacoes();
+      }, 500);
+      
     } catch (error) {
       console.error('Erro ao salvar avaliação:', error);
       Alert.alert('Erro', 'Não foi possível salvar a avaliação.');
@@ -781,22 +901,45 @@ export default function GameDiaryScreen() {
         comentario: comment,
         tags: selectedTags,
       });
-      
+
+      const currentAvatar = await loadUserAvatar(currentUser.id);
+
+      setDiaryEntries(prevEntries =>
+        prevEntries.map((entry) =>
+          entry.id === editingEntryId
+            ? {
+                ...entry,
+                game: selectedGame.titulo,
+                rating: currentRating,
+                comment: comment,
+                tags: selectedTags,
+                date: new Date().toLocaleDateString('pt-BR'),
+                nome_usuario: currentUser.usuario,
+                foto_usuario: currentAvatar,
+              }
+            : entry
+        )
+      );
+
       setRatingModalVisible(false);
       resetEntryForm();
-      loadAvaliacoes();
+      
+      setTimeout(() => {
+        loadAvaliacoes();
+      }, 500);
+      
     } catch (error) {
       console.error('Erro ao editar avaliação:', error);
       Alert.alert('Erro', 'Não foi possível editar a avaliação.');
     }
   };
-
+  
   const editEntry = (entry) => {
     if (!currentUser || entry.usuario_id !== currentUser.id) {
       Alert.alert('Atenção', 'Você só pode editar suas próprias avaliações.');
       return;
     }
-
+    
     const mockGame = { titulo: entry.game };
     setSelectedGame(mockGame);
     setCurrentRating(entry.rating);
@@ -821,7 +964,7 @@ export default function GameDiaryScreen() {
             await axios.delete(`${API_URL}/avaliacoes/${id}`, {
               data: { usuario_id: currentUser.id },
             });
-            loadAvaliacoes();
+            setDiaryEntries(prevEntries => prevEntries.filter((entry) => entry.id !== id));
           } catch (error) {
             console.error('Erro ao deletar:', error);
             Alert.alert('Erro', 'Não foi possível excluir a avaliação.');
@@ -834,15 +977,19 @@ export default function GameDiaryScreen() {
   const handleImageError = async (item) => {
     if (item.usuario_id) {
       const userAvatar = await loadUserAvatar(item.usuario_id);
-      const updatedEntries = diaryEntries.map(entry =>
-        entry.id === item.id ? { ...entry, foto_usuario: userAvatar } : entry
+      const updatedEntries = diaryEntries.map(entry => 
+        entry.id === item.id 
+          ? { ...entry, foto_usuario: userAvatar }
+          : entry
       );
       setDiaryEntries(updatedEntries);
       return;
     }
-
-    const updatedEntries = diaryEntries.map(entry =>
-      entry.id === item.id ? { ...entry, foto_usuario: USER_PLACEHOLDER_IMAGE } : entry
+    
+    const updatedEntries = diaryEntries.map(entry => 
+      entry.id === item.id 
+        ? { ...entry, foto_usuario: USER_PLACEHOLDER_IMAGE }
+        : entry
     );
     setDiaryEntries(updatedEntries);
   };
@@ -853,13 +1000,17 @@ export default function GameDiaryScreen() {
 
     return (
       <View style={styles.entryContainer}>
+        
+        {/* Topo com foto, nome, data, nota */}
         <View style={styles.userInfoHeader}>
-          <TouchableOpacity
+          <TouchableOpacity 
             style={styles.userInfoLeft}
             onPress={() => handleUserProfileClick(item.usuario_id)}
           >
-            <Image
-              source={{ uri: item.foto_usuario || USER_PLACEHOLDER_IMAGE }}
+            <Image 
+              source={{ 
+                uri: item.foto_usuario || USER_PLACEHOLDER_IMAGE 
+              }} 
               style={styles.profileImage}
               onError={() => handleImageError(item)}
               defaultSource={{ uri: USER_PLACEHOLDER_IMAGE }}
@@ -871,16 +1022,18 @@ export default function GameDiaryScreen() {
               <Text style={styles.dateText}>Avaliado em: {item.date}</Text>
             </View>
           </TouchableOpacity>
-
+          
           <View style={styles.ratingBadge}>
             <AntDesign name="star" size={17} color="#FFD700" />
             <Text style={styles.ratingBadgeText}>{rating.toFixed(1)}</Text>
           </View>
         </View>
 
+        {/* Título do Jogo E Botões de Ação */}
         <View style={styles.gameTitleRow}>
           <Text style={styles.gameTitle}>{item.game}</Text>
-
+          
+          {/* Botões de Editar/Apagar */}
           {isCurrentUserEntry && (
             <View style={styles.entryActions}>
               <TouchableOpacity onPress={() => editEntry(item)} style={styles.actionButton}>
@@ -896,6 +1049,7 @@ export default function GameDiaryScreen() {
           )}
         </View>
 
+        {/* Comentário */}
         {item.comment && (
           <View style={styles.commentContainer}>
             <Feather name="message-square" size={18} color="#C7A3FF" />
@@ -903,13 +1057,14 @@ export default function GameDiaryScreen() {
           </View>
         )}
 
+        {/* Tags */}
         {item.tags && item.tags.length > 0 && (
           <View style={styles.tagsSection}>
             <Text style={styles.tagsLabel}>Tags:</Text>
             <View style={styles.tagsContainer}>
               {item.tags.map((tag, index) => (
                 <View key={index} style={styles.tag}>
-                  <Feather name="tag" size={18} color="#E2D1FF" />
+                  <Feather name="tag" size={18} color="#E2D1FF"/>
                   <Text style={styles.tagText}> {tag}</Text>
                 </View>
               ))}
@@ -920,11 +1075,11 @@ export default function GameDiaryScreen() {
     );
   };
 
-  if (loading && !entriesLoaded) {
+  if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#A259FF" />
-        <Text style={styles.loadingText}>Carregando avaliações...</Text>
+        <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
   }
@@ -952,6 +1107,7 @@ export default function GameDiaryScreen() {
 
       {activeTab === 'diary' ? (
         <>
+          {/* Botão para adicionar nova avaliação */}
           {currentUser && (
             <View style={styles.addEntryContainer}>
               <TouchableOpacity style={styles.addButtonLarge} onPress={handleAddNewEntry}>
@@ -960,6 +1116,7 @@ export default function GameDiaryScreen() {
             </View>
           )}
 
+          {/* Mensagem para visitantes */}
           {!currentUser && (
             <View style={styles.guestMessage}>
               <Text style={styles.guestText}>
@@ -968,6 +1125,7 @@ export default function GameDiaryScreen() {
             </View>
           )}
 
+          {/* Lista de avaliações */}
           {diaryEntries.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>Nenhuma avaliação encontrada</Text>
@@ -982,137 +1140,45 @@ export default function GameDiaryScreen() {
               keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
-              refreshing={loading}
-              onRefresh={loadAvaliacoes}
             />
           )}
         </>
       ) : (
+        // Seção "Sobre"
         <ScrollView contentContainerStyle={styles.aboutContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.aboutHero}>
-            <Text style={styles.aboutHeroTitle}>GameFinder 🎮</Text>
-            <Text style={styles.aboutHeroSubtitle}>Sua Plataforma de Avaliação de Jogos</Text>
-          </View>
-
-          <View style={styles.featureSection}>
-            <View style={styles.featureCard}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="game-controller" size={32} color="#A259FF" />
-              </View>
-              <Text style={styles.featureTitle}>Descubra Jogos Incríveis</Text>
-              <Text style={styles.featureDescription}>
-                Encontre os melhores jogos baseados nas suas preferências e avaliações da comunidade.
+          <View style={styles.companyCard}>
+            <Text style={styles.companyTitle}>GameFinder 🎮</Text>
+            <View style={styles.companyDescription}>
+              <Text style={[styles.descriptionText, { textAlign: 'center', marginBottom: 20 }]}>
+                Plataforma de avaliação de jogos desenvolvida para TCC
               </Text>
-            </View>
-
-            <View style={styles.featureCard}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="star" size={32} color="#FFD700" />
-              </View>
-              <Text style={styles.featureTitle}>Avalie e Compartilhe</Text>
-              <Text style={styles.featureDescription}>
-                Dê suas notas, escreva reviews e ajude outros gamers a fazerem as melhores escolhas.
+              <Text style={styles.descriptionText}>
+                Este aplicativo permite que usuários compartilhem suas avaliações de jogos, criando
+                uma comunidade onde todos podem descobrir novos títulos baseados nas opiniões de
+                outros jogadores.
               </Text>
-            </View>
-
-            <View style={styles.featureCard}>
-              <View style={styles.featureIcon}>
-                <Ionicons name="people" size={32} color="#4CD964" />
-              </View>
-              <Text style={styles.featureTitle}>Comunidade Ativa</Text>
-              <Text style={styles.featureDescription}>
-                Conecte-se com outros jogadores e descubra opiniões genuínas sobre seus jogos favoritos.
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.missionSection}>
-            <Text style={styles.missionTitle}>Nossa Missão</Text>
-            <Text style={styles.missionText}>
-              Criamos o GameFinder para ajudar jogadores de todos os níveis a descobrirem 
-              experiências incríveis no mundo dos games. Seja você um iniciante procurando 
-              seu primeiro jogo ou um veterano em busca do próximo desafio, nossa plataforma 
-              oferece as ferramentas e informações necessárias para tomar a melhor decisão.
-            </Text>
-          </View>
-
-          <View style={styles.techSection}>
-            <Text style={styles.techTitle}>Tecnologia</Text>
-            <View style={styles.techGrid}>
-              <View style={styles.techItem}>
-                <Ionicons name="logo-react" size={28} color="#61DAFB" />
-                <Text style={styles.techText}>React Native</Text>
-              </View>
-              <View style={styles.techItem}>
-                <Ionicons name="server" size={28} color="#4CD964" />
-                <Text style={styles.techText}>Node.js</Text>
-              </View>
-              <View style={styles.techItem}>
-                <Ionicons name="cloud" size={28} color="#007AFF" />
-                <Text style={styles.techText}>API REST</Text>
-              </View>
-              <View style={styles.techItem}>
-                <Ionicons name="phone-portrait" size={28} color="#FF2D55" />
-                <Text style={styles.techText}>Mobile First</Text>
+              <View style={styles.contactBox}>
+                <Text style={styles.contactTitle}>Contato</Text>
+                <Text style={styles.contactEmail}>contato@gamefinder.com</Text>
+                <View style={styles.socialIcons}>
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    onPress={() => Linking.openURL('https://twitter.com/gamefinder')}>
+                    <AntDesign name="twitter" size={24} color="#1DA1F2" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    onPress={() => Linking.openURL('https://instagram.com/gamefinder')}>
+                    <AntDesign name="instagram" size={24} color="#E1306C" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-
-          <View style={styles.contactSection}>
-            <Text style={styles.contactTitle}>Entre em Contato</Text>
-            <Text style={styles.contactDescription}>
-              Tem alguma sugestão ou encontrou algum problema? Fale conosco!
-            </Text>
-            
-            <View style={styles.contactInfo}>
-              <View style={styles.contactItem}>
-                <Ionicons name="mail" size={20} color="#A259FF" />
-                <Text style={styles.contactText}>contato@gamefinder.com</Text>
-              </View>
-              <View style={styles.contactItem}>
-                <Ionicons name="globe" size={20} color="#A259FF" />
-                <Text style={styles.contactText}>www.gamefinder.com</Text>
-              </View>
-            </View>
-
-            <View style={styles.socialSection}>
-              <Text style={styles.socialTitle}>Siga-nos</Text>
-              <View style={styles.socialIcons}>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => Linking.openURL('https://twitter.com/gamefinder')}>
-                  <Ionicons name="logo-twitter" size={28} color="#1DA1F2" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => Linking.openURL('https://instagram.com/gamefinder')}>
-                  <Ionicons name="logo-instagram" size={28} color="#E1306C" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => Linking.openURL('https://discord.gg/gamefinder')}>
-                  <Ionicons name="logo-discord" size={28} color="#5865F2" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.socialButton}
-                  onPress={() => Linking.openURL('https://youtube.com/gamefinder')}>
-                  <Ionicons name="logo-youtube" size={28} color="#FF0000" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.footerSection}>
-            <Text style={styles.footerText}>
-              Desenvolvido com ❤️ para a comunidade gamer
-            </Text>
-            <Text style={styles.footerSubtext}>
-              GameFinder © 2024 - Todos os direitos reservados
-            </Text>
           </View>
         </ScrollView>
       )}
 
+      {/* Modal de Perfil do Usuário */}
       <UserProfileModal
         visible={userProfileModalVisible}
         onClose={() => setUserProfileModalVisible(false)}
@@ -1120,12 +1186,14 @@ export default function GameDiaryScreen() {
         onAvatarUpdate={handleAvatarUpdate}
       />
 
+      {/* Modal de Seleção de Jogo */}
       <GameSelectionModal
         visible={gameSelectionModalVisible}
         onClose={() => setGameSelectionModalVisible(false)}
         onGameSelect={handleGameSelect}
       />
 
+      {/* Modal de Avaliação/Edição */}
       <EntryModal
         visible={ratingModalVisible}
         onClose={() => {
@@ -1476,7 +1544,7 @@ const styles = StyleSheet.create({
     color: '#FFD700',
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 6,
+    marginLeft: 16,
   },
   gameTitleRow: {
     flexDirection: 'row',
@@ -1529,7 +1597,7 @@ const styles = StyleSheet.create({
   },
   tagsLabel: {
     color: '#C7A3FF',
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 6,
     fontWeight: '600',
   },
@@ -1550,7 +1618,7 @@ const styles = StyleSheet.create({
     borderColor: '#8A4FFF',
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#E2D1FF',
     fontWeight: '500',
     marginLeft: 4,
@@ -1563,7 +1631,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     color: '#F5E6FF',
-    fontSize: 18,
+    fontSize: 18, 
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -1571,207 +1639,71 @@ const styles = StyleSheet.create({
     color: '#A67FEB',
     textAlign: 'center',
   },
-  // About Section Styles
   aboutContainer: {
     flexGrow: 1,
     padding: 20,
-    paddingBottom: 40,
   },
-  aboutHero: {
-    alignItems: 'center',
-    marginBottom: 30,
-    padding: 20,
-    backgroundColor: 'rgba(162, 89, 255, 0.1)',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#A259FF',
-  },
-  aboutHeroTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#F5E6FF',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  aboutHeroSubtitle: {
-    fontSize: 18,
-    color: '#C7A3FF',
-    textAlign: 'center',
-  },
-  featureSection: {
-    marginBottom: 30,
-  },
-  featureCard: {
+  companyCard: {
     backgroundColor: '#2A0A50',
-    padding: 20,
     borderRadius: 16,
-    marginBottom: 15,
+    padding: 20,
     borderLeftWidth: 4,
     borderLeftColor: '#8A4FFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  featureIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(162, 89, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-    borderWidth: 2,
-    borderColor: 'rgba(162, 89, 255, 0.3)',
-  },
-  featureTitle: {
-    fontSize: 18,
+  companyTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#F5E6FF',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  companyDescription: {
+    marginTop: 10,
+  },
+  descriptionText: {
+    color: '#E2D1FF',
+    fontSize: 18,
+    lineHeight: 22,
     marginBottom: 8,
   },
-  featureDescription: {
-    fontSize: 14,
-    color: '#C7A3FF',
-    lineHeight: 20,
-  },
-  missionSection: {
-    backgroundColor: 'rgba(58, 26, 106, 0.5)',
+  contactBox: {
+    marginTop: 25,
+    backgroundColor: '#3A1A6A',
+    borderRadius: 10,
     padding: 20,
-    borderRadius: 16,
-    marginBottom: 30,
     borderWidth: 1,
-    borderColor: '#4D1F8C',
-  },
-  missionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#F5E6FF',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  missionText: {
-    fontSize: 16,
-    color: '#E2D1FF',
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  techSection: {
-    marginBottom: 30,
-  },
-  techTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#F5E6FF',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  techGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  techItem: {
-    width: '48%',
-    backgroundColor: '#2A0A50',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#4D1F8C',
-  },
-  techText: {
-    color: '#C7A3FF',
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  contactSection: {
-    backgroundColor: 'rgba(58, 26, 106, 0.5)',
-    padding: 25,
-    borderRadius: 16,
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: '#4D1F8C',
+    borderColor: '#8A4FFF',
   },
   contactTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
     color: '#F5E6FF',
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
   },
-  contactDescription: {
-    fontSize: 16,
-    color: '#C7A3FF',
+  contactEmail: {
+    color: '#B77DFF',
     textAlign: 'center',
-    marginBottom: 20,
-  },
-  contactInfo: {
-    marginBottom: 20,
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: 'rgba(42, 10, 80, 0.8)',
-    borderRadius: 10,
-  },
-  contactText: {
-    color: '#E2D1FF',
-    marginLeft: 12,
-    fontSize: 16,
-  },
-  socialSection: {
-    alignItems: 'center',
-  },
-  socialTitle: {
-    fontSize: 18,
-    color: '#F5E6FF',
+    fontWeight: 'bold',
     marginBottom: 15,
-    fontWeight: '600',
   },
   socialIcons: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop: 10,
   },
   socialButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    marginHorizontal: 10,
     backgroundColor: '#2A0A50',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
-    borderWidth: 2,
-    borderColor: '#4D1F8C',
-  },
-  footerSection: {
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(26, 0, 51, 0.5)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#4D1F8C',
-  },
-  footerText: {
-    fontSize: 16,
-    color: '#F5E6FF',
-    textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  footerSubtext: {
-    fontSize: 12,
-    color: '#A67FEB',
-    textAlign: 'center',
   },
 });
 
+// Modal de Perfil do Usuário
 const userProfileModalStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1930,6 +1862,11 @@ const gameSelectionModalStyles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  buttonText: {
+    color: '#F5E6FF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
@@ -2121,5 +2058,10 @@ const entryModalStyles = StyleSheet.create({
   saveButtonDisabled: {
     backgroundColor: '#4D1F8C',
     opacity: 0.6,
+  },
+  buttonText: {
+    color: '#F5E6FF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
