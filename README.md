@@ -6,7 +6,7 @@ O projeto foi pensado para ser simples, intuitivo e funcional, focando em experi
 
 ---
 
-## 🚀 Funcionalidades
+## Funcionalidades
 
 - Busca de jogos por preferências
 - Interface mobile simples e intuitiva
@@ -15,7 +15,7 @@ O projeto foi pensado para ser simples, intuitivo e funcional, focando em experi
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 - **React Native** — desenvolvimento mobile
 - **Node.js** — back-end
@@ -25,7 +25,7 @@ O projeto foi pensado para ser simples, intuitivo e funcional, focando em experi
 
 ---
 
-## 📱 Telas do Aplicativo
+## Telas do Aplicativo
 
 <p align="center">
   <img src="./assets/1.png" width="250"/>
@@ -37,7 +37,7 @@ O projeto foi pensado para ser simples, intuitivo e funcional, focando em experi
 
 ---
 
-## 📚 Documentação do Projeto
+## Documentação do Projeto
 
 O GameFinder possui documentações formais que detalham tanto os requisitos quanto os testes realizados durante o desenvolvimento:
 
@@ -52,7 +52,7 @@ O GameFinder possui documentações formais que detalham tanto os requisitos qua
 ---
 
 
-## 🎓 Contexto Acadêmico
+## Contexto Acadêmico
 
 Projeto desenvolvido em grupo como **Trabalho de Conclusão de Curso (TCC)** no curso Técnico em Desenvolvimento de Sistemas pelo **SENAI**, envolvendo:
 
@@ -63,7 +63,7 @@ Projeto desenvolvido em grupo como **Trabalho de Conclusão de Curso (TCC)** no 
 
 ---
 
-## 📌 Status do Projeto
+## Status do Projeto
 
 ✔️ Concluído como projeto acadêmico  
 🔧 Aberto a melhorias e refatorações futuras
