@@ -37,6 +37,21 @@ O projeto foi pensado para ser simples, intuitivo e funcional, focando em experi
 
 ---
 
+## 📚 Documentação do Projeto
+
+O GameFinder possui documentações formais que detalham tanto os requisitos quanto os testes realizados durante o desenvolvimento:
+
+- 📘 **Especificação de Requisitos de Software (ERS)**  
+  Documento que descreve os requisitos funcionais, não funcionais e regras de negócio do sistema.  
+  👉 [Acessar ERS](./docs/ers-gamefinder.pdf)
+
+- 🧪 **Documento de Testes de Software**  
+  Apresenta os cenários, casos de teste e validações aplicadas ao projeto.  
+  👉 [Acessar documento de testes](./docs/testes-gamefinder.pdf)
+
+---
+
+
 ## 🎓 Contexto Acadêmico
 
 Projeto desenvolvido em grupo como **Trabalho de Conclusão de Curso (TCC)** no curso Técnico em Desenvolvimento de Sistemas pelo **SENAI**, envolvendo:
