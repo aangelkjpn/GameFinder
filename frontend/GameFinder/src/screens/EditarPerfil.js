@@ -3,9 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 // URL da API
-const API_URL = 'http://10.111.9.99:3000/api';
 
 const TAGS_PREDEFINIDAS = [
   'Terror', 'FPS', 'RPG','Aventura', 'Estratégia', 'Esportes', 'Corrida', 'Luta',

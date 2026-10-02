@@ -65,7 +65,7 @@ npm start
 A API sobe em `http://localhost:3000/api`. Os dados de conexão com o banco ficam em `backend/db.js`.
 
 ### 3. Aplicativo
-Troque o `API_URL` nas telas em `frontend/GameFinder/src/screens/` pelo IP do computador onde o back-end está rodando. Depois:
+Troque o `API_URL` em `frontend/GameFinder/src/config.js` pelo IP do computador onde o back-end está rodando. Depois:
 ```bash
 cd frontend/GameFinder
 npm install
