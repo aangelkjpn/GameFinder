@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
 
 export default function LoginTela({ navigation }) {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ export default function LoginTela({ navigation }) {
   const handleLogin = async () => {
     if (email.trim() && senha.trim()) {
       try {
-        const response = await fetch('http://10.111.9.99:3000/api/login', {
+        const response = await fetch(`${API_URL}/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

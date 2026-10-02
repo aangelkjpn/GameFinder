@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { API_URL } from '../config';
 
 export default function RegistroTela({ navigation }) {
   const [nome, setNome] = useState('');
@@ -93,7 +94,7 @@ export default function RegistroTela({ navigation }) {
     }
 
     try {
-      const checkResponse = await fetch('http://10.111.9.99:3000/api/check-email', {
+      const checkResponse = await fetch(`${API_URL}/check-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -106,7 +107,7 @@ export default function RegistroTela({ navigation }) {
         return;
       }
 
-      const response = await fetch('http://10.111.9.99:3000/api/register', {
+      const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario: nome, email, senha }),

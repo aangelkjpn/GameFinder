@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { API_URL } from '../config';
 
-const API_URL = 'http://10.111.9.99:3000/api';
 
 const safeParse = (data, fallback = {}) => {
   try {

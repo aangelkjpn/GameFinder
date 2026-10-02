@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ScrollVi
 import { useState, useEffect } from 'react';
 import { AntDesign, Feather, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { API_URL } from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const USER_PLACEHOLDER_IMAGE = 'https://via.placeholder.com/150/4D1F8C/FFFFFF?text=👤';
@@ -236,7 +237,6 @@ const GameSelectionModal = ({ visible, onClose, onGameSelect }) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredGames, setFilteredGames] = useState([]);
-  const API_URL = 'http://10.111.9.99:3000/api';
 
   const loadGames = async () => {
     try {
@@ -580,7 +580,6 @@ export default function GameDiaryScreen() {
   const [entriesLoaded, setEntriesLoaded] = useState(false);
 
   const { avatarUpdateCount, triggerAvatarUpdate } = useAvatarUpdate();
-  const API_URL = 'http://10.111.9.99:3000/api';
 
   const saveUserImageToStorage = async (userId, imageUrl, storageKey) => {
     try {
